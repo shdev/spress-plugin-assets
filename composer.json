@@ -1,0 +1,16 @@
+{
+    "name": "shdev/spress-assets",
+    "type": "spress-plugin",
+    "description": "It allows to asset boost assets",
+    "keywords": ["spress", "plugin"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Sebastian Holtz",
+            "email": "spress@sh-dev.de"
+        }
+    ],
+    "require": {
+        "spress/spress-installer": "~2.1"
+    }
+}
