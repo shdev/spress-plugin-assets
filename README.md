@@ -153,8 +153,102 @@ Renders the HTML
 
 Like the shining example [jekyll-assets](https://github.com/jekyll/jekyll-assets) it uses [ImageMagick](http://www.imagemagick.org/script/index.php) for image manipulation.
 
+You can use it with every filter but it should only usefull with `img` and `asset_path`
 
+This options of the `convert`-command are used:
 
-##### Resize
+* [quality](http://www.imagemagick.org/script/command-line-options.php#quality)
+* [resize](http://www.imagemagick.org/script/command-line-options.php#resize)
+* [crop](http://www.imagemagick.org/script/command-line-options.php#crop)
+* [gravity](http://www.imagemagick.org/script/command-line-options.php#gravity) only if `crop` options is present.
 
+Also when `crop` is used a `+repage` will appended, look here [repage](http://www.imagemagick.org/script/command-line-options.php#repage) for more information
 
+Here an example with all options at once
+
+```twig
+{{ 'img/feature-image.jpg' | img({resize: '300x300^', crop: '300x300+0+0', gravity: 'SouthEast', quality:60 }) }}
+```
+
+This creates a new images which is quadratic.
+ 
+* `resize: '300x300^'` means resize the image that it cover a *300px* times *300px* area
+* `crop: '300x300+0+0'` means crop to *300px* times *300px* but 
+* `gravity: 'SouthEast'` use the bottom-right corner
+* `quality:60` reduce the quality to 60%. 
+
+Renders the HTML
+
+```
+<img src="<asset_output_web_prefix>/img/feature-image_6fa6fa3af470d85af98ac7f7b8d5c933.jpg">
+```
+
+and writes the file 
+
+``` 
+<asset_output_path>/img/feature-image_6fa6fa3af470d85af98ac7f7b8d5c933.jpg
+```
+
+Be informed different image transformation options lead to other hash values used for the file.
+
+So 
+
+```twig
+{{ 'img/feature-image.jpg' | img }}
+```
+
+will not create the file 
+
+``` 
+<asset_output_path>/img/feature-image_6fa6fa3af470d85af98ac7f7b8d5c933.jpg
+```
+
+### asset boost on apache webserver 
+
+As an extra you can asset boost your site if it runs with an apache webserver with the following `.htaccess` options.
+
+```apacheconfig
+RewriteEngine On
+
+RewriteCond %{HTTP:Accept-Encoding} gzip
+RewriteCond %{REQUEST_FILENAME}.gz -f
+RewriteRule ^(.+\.(xml|html|css|js|eot|eot|woff2|woff|ttf|svg))$ /$1.gz [L]
+
+<FilesMatch "\.(xml|xml.gz|html|htm|html.gz|htm.gz)$">
+Header set Cache-Control "no-cache, no-store, must-revalidate"
+Header set Pragma "no-cache"
+</FilesMatch>
+
+<FilesMatch "\.(gz)$">
+Header set Vary "Accept-Encoding" 
+Header set Content-Encoding "gzip"
+</FilesMatch>
+
+<FilesMatch "\.js.gz$">
+Header set Content-Type "application/javascript"
+</FilesMatch>
+
+<FilesMatch "\.css.gz$">
+Header set Content-Type "text/css; charset=UTF-8"
+</FilesMatch>
+
+<FilesMatch "_[a-f0-9]{32}\.(ico|pdf|flv|jpg|jpeg|png|gif|swf|ico.gz|pdf.gz|flv.gz|jpg.gz|jpeg.gz|png.gz|gif.gz|swf.gz|js|css|css.gz|js.gz)$">
+ExpiresActive On
+ExpiresDefault "access plus 1 year"
+Header set Cache-Control "max-age=8916000, public"
+</FilesMatch>
+```
+
+I generate the *gzip* files as an after build step.
+
+## Wished features for the next releases
+
+* cache manipulated images
+* filter for outputing raw asset to twig. E.g. inline *js* or *css*
+* filter for outputing transformed image to twig. E.g. inline base64 images
+* asset boost configs for other web servers, I hope for *pull requests*
+* render `css`|`js` or other files with twig before coping, this allows to inject e.g. colors from `config.yml` to the style files.
+* scss processing
+* babel processing
+
+ 
