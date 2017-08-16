@@ -1,7 +1,7 @@
 {
     "name": "shdev/spress-plugin-assets",
     "type": "spress-plugin",
-    "description": "It allows to asset boost assets",
+    "description": "It allows to asset boost your Spress site",
     "keywords": ["spress", "plugin"],
     "license": "MIT",
     "authors": [
