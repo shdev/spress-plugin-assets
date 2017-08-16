@@ -1,5 +1,5 @@
 {
-    "name": "shdev/spress-assets",
+    "name": "shdev/spress-plugin-assets",
     "type": "spress-plugin",
     "description": "It allows to asset boost assets",
     "keywords": ["spress", "plugin"],

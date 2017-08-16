@@ -74,7 +74,7 @@ class SpressAssets implements PluginInterface
     public function getMetas()
     {
         return [
-            'name' => 'shdev/spress-assets',
+            'name' => 'shdev/spress-plugin-assets',
             'description' => 'It allows to asset boost assets',
             'author' => 'Sebastian Holtz',
             'license' => 'MIT',
