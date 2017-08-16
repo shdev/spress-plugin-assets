@@ -75,7 +75,7 @@ class SpressAssets implements PluginInterface
     {
         return [
             'name' => 'shdev/spress-plugin-assets',
-            'description' => 'It allows to asset boost assets',
+            'description' => 'It allows to asset boost your Spress site',
             'author' => 'Sebastian Holtz',
             'license' => 'MIT',
         ];
