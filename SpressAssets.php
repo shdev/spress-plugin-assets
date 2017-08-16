@@ -74,7 +74,7 @@ class SpressAssets implements PluginInterface
     public function getMetas()
     {
         return [
-            'name' => 'sh/spress-assets',
+            'name' => 'shdev/spress-assets',
             'description' => 'It allows to asset boost assets',
             'author' => 'Sebastian Holtz',
             'license' => 'MIT',
@@ -202,7 +202,15 @@ class SpressAssets implements PluginInterface
             $this->io->write('src/assets/' . $file['file'] . ' => ' .
                 $configAssetOutputPath . '/' . $newFilePath, true, IOInterface::VERBOSITY_VERBOSE);
 
-            if (in_array(strtolower($fileManager->getExtension()), self::IMAGE_EXTENSIONS, true) ) {
+            /** @noinspection NotOptimalIfConditionsInspection */
+            if (
+                in_array(strtolower($fileManager->getExtension()), self::IMAGE_EXTENSIONS, true) &&
+                (
+                    (!empty($file['options']['resize'])) ||
+                    (!empty($file['options']['crop'])) ||
+                    (!empty($file['options']['quality']))
+                )
+            ) {
                 $args = [ escapeshellarg($file['fullFilePath']), ];
 
                 if (!empty($file['options']['resize'])) {
@@ -237,7 +245,6 @@ class SpressAssets implements PluginInterface
                     $this->io->write(sprintf('Error while converting image \'%s\'' , $file['file']));
                     $this->io->write($command, true, IOInterface::VERBOSITY_DEBUG);
                 }
-
             } else {
                 try {
                     $this->fs->copy(
