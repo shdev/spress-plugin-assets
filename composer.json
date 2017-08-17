@@ -11,6 +11,6 @@
         }
     ],
     "require": {
-        "spress/spress-installer": "~2.1"
+        "spress/spress-installer": "2.0.*"
     }
 }
