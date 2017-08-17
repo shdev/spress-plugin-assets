@@ -244,6 +244,7 @@ I generate the *gzip* files as an after build step.
 ## Wished features for the next releases
 
 * cache manipulated images
+* a posteriori run of `jpegoptim` und `optipng`
 * filter for outputing raw asset to twig. E.g. inline *js* or *css*
 * filter for outputing transformed image to twig. E.g. inline base64 images
 * asset boost configs for other web servers, I hope for *pull requests*
