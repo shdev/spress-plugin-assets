@@ -9,6 +9,7 @@ use Symfony\Component\Filesystem\Filesystem;
 
 class SpressAssets implements PluginInterface
 {
+    const PATH_TO_ROOT = '../../../../';
     /** string[] */
     const IMAGE_EXTENSIONS = ['jpg', 'png', 'jpeg', 'gif'];
 
@@ -17,6 +18,9 @@ class SpressAssets implements PluginInterface
 
     /** string */
     const DEFAULT_ASSET_OUTPUT_PATH = 'build/assets';
+
+    /** string */
+    const CACHE_PATH = '.cache/assets';
 
     /** string */
     const DEFAULT_ASSET_OUTPUT_WEB_PATH = '/assets';
@@ -89,9 +93,8 @@ class SpressAssets implements PluginInterface
     {
         $this->io = $event->getIO();
 
+        /** @var \Yosymfony\Spress\Core\ContentManager\Renderizer\TwigRenderizer $renderizer */
         $renderizer = $event->getRenderizer();
-
-
 
         $renderizer->addTwigFilter('asset_path', function($filePath, $options = []) use ($event) {
             return $this->getAssetUrl($event, $filePath, $options);
@@ -189,7 +192,8 @@ class SpressAssets implements PluginInterface
         $configAssetOutputPath = isset($event->getSiteAttributes()['site']['asset_output_path'])?
             $event->getSiteAttributes()['site']['asset_output_path']:self::DEFAULT_ASSET_OUTPUT_PATH;
 
-        $assetOutputPath = '../../../../' . $configAssetOutputPath;
+        $assetOutputPath = self::PATH_TO_ROOT . $configAssetOutputPath;
+        $assetCachePath = self::PATH_TO_ROOT . self::CACHE_PATH;
 
         $this->fs->mkdir(__DIR__ . '/' . $assetOutputPath);
         $this->io->write("Start writing assets", true, IOInterface::VERBOSITY_VERBOSE);
@@ -202,58 +206,37 @@ class SpressAssets implements PluginInterface
             $this->io->write('src/assets/' . $file['file'] . ' => ' .
                 $configAssetOutputPath . '/' . $newFilePath, true, IOInterface::VERBOSITY_VERBOSE);
 
-            /** @noinspection NotOptimalIfConditionsInspection */
-            if (
-                in_array(strtolower($fileManager->getExtension()), self::IMAGE_EXTENSIONS, true) &&
-                (
-                    (!empty($file['options']['resize'])) ||
-                    (!empty($file['options']['crop'])) ||
-                    (!empty($file['options']['quality']))
-                )
-            ) {
-                $args = [ escapeshellarg($file['fullFilePath']), ];
+            $cacheFilePath = __DIR__ . '/' . $assetCachePath . '/' . $newFilePath;
+            $outputFilePath = __DIR__ . '/' . $assetOutputPath . '/' . $newFilePath;
 
-                if (!empty($file['options']['resize'])) {
-                    $args[] = '-resize';
-                    $args[] = escapeshellarg($file['options']['resize']);
-                }
-
-                if (!empty($file['options']['crop'])) {
-                    if (!empty($file['options']['gravity'])) {
-                        $args[] = '-gravity';
-                        $args[] = escapeshellarg($file['options']['gravity']);
+            if (!$this->fs->exists($cacheFilePath)) {
+                $this->fs->mkdir(__DIR__ . '/' . $assetCachePath . '/' . $fileManager->getPath() );
+                /** @noinspection NotOptimalIfConditionsInspection */
+                if (
+                    in_array(strtolower($fileManager->getExtension()), self::IMAGE_EXTENSIONS, true) &&
+                    (
+                        (!empty($file['options']['resize'])) ||
+                        (!empty($file['options']['crop'])) ||
+                        (!empty($file['options']['quality']))
+                    )
+                ) {
+                    $file = $this->imageManipultaion($file, $cacheFilePath);
+                } else {
+                    try {
+                        $this->fs->copy(
+                            $file['fullFilePath'], $cacheFilePath);
+                    } catch (Exception $e) {
+                        $this->io->write(sprintf('Error: can\'t copy file \'%s\'', $file['file']));
                     }
-
-                    $args[] = '-crop';
-                    $args[] = escapeshellarg($file['options']['crop']);
-
-                    $args[] = '+repage';
-                }
-
-                if (!empty($file['options']['quality'])) {
-                    $args[] = '-quality';
-                    $args[] = escapeshellarg((int) $file['options']['quality']);
-                }
-
-                $args[] = escapeshellarg(__DIR__ . '/' . $assetOutputPath . '/' . $newFilePath);
-
-                $command = 'convert ' . implode(' ', $args);
-
-                exec($command, $output, $statusCode);
-
-                if (0 !== $statusCode) {
-                    $this->io->write(sprintf('Error while converting image \'%s\'' , $file['file']));
-                    $this->io->write($command, true, IOInterface::VERBOSITY_DEBUG);
-                }
-            } else {
-                try {
-                    $this->fs->copy(
-                        $file['fullFilePath'],
-                        __DIR__ . '/' . $assetOutputPath . '/' . $newFilePath);
-                } catch (Exception $e) {
-                    $this->io->write(sprintf('Error: can\'t copy file \'%s\'' , $file['file']));
                 }
             }
+
+            try {
+                $this->fs->copy($cacheFilePath, $outputFilePath);
+            } catch (Exception $e) {
+                $this->io->write(sprintf('Error: can\'t copy file \'%s\'', $file['file']));
+            }
+
         }
         $this->io->write("Finished writing assets", true, IOInterface::VERBOSITY_VERBOSE);
     }
@@ -278,5 +261,50 @@ class SpressAssets implements PluginInterface
         $newFilePath = $fileManager->getPath() ? $fileManager->getPath() . '/' . $filename : $filename;
 
         return [$fileManager, $newFilePath];
+    }
+
+    /**
+     * @param $file
+     * @param $cacheFilePath
+     * @return mixed
+     */
+    private function imageManipultaion($file, $cacheFilePath)
+    {
+        $args = [escapeshellarg($file['fullFilePath']),];
+
+        if (!empty($file['options']['resize'])) {
+            $args[] = '-resize';
+            $args[] = escapeshellarg($file['options']['resize']);
+        }
+
+        if (!empty($file['options']['crop'])) {
+            if (!empty($file['options']['gravity'])) {
+                $args[] = '-gravity';
+                $args[] = escapeshellarg($file['options']['gravity']);
+            }
+
+            $args[] = '-crop';
+            $args[] = escapeshellarg($file['options']['crop']);
+
+            $args[] = '+repage';
+        }
+
+        if (!empty($file['options']['quality'])) {
+            $args[] = '-quality';
+            $args[] = escapeshellarg((int)$file['options']['quality']);
+        }
+
+        $args[] = escapeshellarg($cacheFilePath);
+
+        $command = 'convert ' . implode(' ', $args);
+
+        exec($command, $output, $statusCode);
+
+        if (0 !== $statusCode) {
+            $this->io->write(sprintf('Error while converting image \'%s\'', $file['file']));
+            $this->io->write($command, true, IOInterface::VERBOSITY_DEBUG);
+        }
+
+        return $file;
     }
 }
