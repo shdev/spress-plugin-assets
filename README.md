@@ -203,6 +203,13 @@ will not create the file
 <asset_output_path>/img/feature-image_6fa6fa3af470d85af98ac7f7b8d5c933.jpg
 ```
 
+### Cache folder
+
+For a better performance the plugin cached all files in the folder `.cache/assets`.
+This saved time for the image manipulation.
+It will not clear old unused file.
+So please clean it up from time to time.    
+
 ### asset boost on apache webserver 
 
 As an extra you can asset boost your site if it runs with an apache webserver with the following `.htaccess` options.
@@ -243,7 +250,6 @@ I generate the *gzip* files as an after build step.
 
 ## Wished features for the next releases
 
-* cache manipulated images
 * a posteriori run of `jpegoptim` und `optipng`
 * filter for outputing raw asset to twig. E.g. inline *js* or *css*
 * filter for outputing transformed image to twig. E.g. inline base64 images
