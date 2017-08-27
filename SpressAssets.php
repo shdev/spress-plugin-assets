@@ -5,6 +5,7 @@ use Yosymfony\Spress\Core\Plugin\PluginInterface;
 use Yosymfony\Spress\Core\Plugin\EventSubscriber;
 use Yosymfony\Spress\Core\Plugin\Event\EnvironmentEvent;
 use Yosymfony\Spress\Core\Plugin\Event\FinishEvent;
+use Yosymfony\Spress\Core\Support\AttributesResolver;
 use Symfony\Component\Filesystem\Filesystem;
 
 class SpressAssets implements PluginInterface
@@ -38,6 +39,15 @@ class SpressAssets implements PluginInterface
 
     /** @var Filesystem */
     private $fs;
+
+    /** @var array */
+    private $config;
+
+    /** @var AttributesResolver */
+    private $fileResolver;
+
+    /** @var AttributesResolver */
+    private $configurationResolver;
 
     /**
      * @param array $attributes
@@ -93,6 +103,16 @@ class SpressAssets implements PluginInterface
     {
         $this->io = $event->getIO();
 
+        $this->config = $this->getConfigurationResolver()->resolve($event->getConfigValues());
+        $event->setConfigValues($this->config);
+
+        /** @var \Yosymfony\Spress\Core\DataSource\DataSourceManager $dsm */
+        $dsm = $event->getDataSourceManager();
+
+        $dsm->getItems();
+
+        $this->io->write(count($dsm->getItems()));
+
         /** @var \Yosymfony\Spress\Core\ContentManager\Renderizer\TwigRenderizer $renderizer */
         $renderizer = $event->getRenderizer();
 
@@ -147,12 +167,8 @@ class SpressAssets implements PluginInterface
             $this->hashes[$fullFilepath] = md5_file($fullFilepath);
         }
 
-        $options += [
-            'resize' => null,
-            'crop' => null,
-            'gravity' => 'Center',
-            'quality' => null,
-        ];
+        $options = $this->getFileResolver()->resolve($options);
+
         $hashOptions = [
             'resize' => $options['resize'],
             'crop' => $options['crop'],
@@ -160,7 +176,6 @@ class SpressAssets implements PluginInterface
             'quality' => $options['quality'],
         ];
         ksort($hashOptions);
-
 
         $optionsHash = md5(json_encode($hashOptions));
 
@@ -176,8 +191,8 @@ class SpressAssets implements PluginInterface
 
         list($fileManager, $newFilePath) = $this->getFilename($this->files[$fullFilepath . '_' . $fileHash]);
 
-        $assetOutputWebPrefix = isset($event->getConfigValues()['asset_output_web_prefix'])?
-            $event->getConfigValues()['asset_output_web_prefix']: self::DEFAULT_ASSET_OUTPUT_WEB_PATH;
+        $assetOutputWebPrefix = isset($this->config['asset_output_web_prefix'])?
+            $this->config['asset_output_web_prefix']: self::DEFAULT_ASSET_OUTPUT_WEB_PATH;
 
         return $assetOutputWebPrefix . '/' . $newFilePath;
     }
@@ -189,8 +204,8 @@ class SpressAssets implements PluginInterface
      */
     public function onFinish(FinishEvent $event)
     {
-        $configAssetOutputPath = isset($event->getSiteAttributes()['site']['asset_output_path'])?
-            $event->getSiteAttributes()['site']['asset_output_path']:self::DEFAULT_ASSET_OUTPUT_PATH;
+        $configAssetOutputPath = isset($this->config['asset_output_path'])?
+            $this->config['asset_output_path']:self::DEFAULT_ASSET_OUTPUT_PATH;
 
         $assetOutputPath = self::PATH_TO_ROOT . $configAssetOutputPath;
         $assetCachePath = self::PATH_TO_ROOT . self::CACHE_PATH;
@@ -306,5 +321,36 @@ class SpressAssets implements PluginInterface
         }
 
         return $file;
+    }
+
+    private function getConfigurationResolver()
+    {
+        if (!$this->configurationResolver) {
+            $resolver = new AttributesResolver();
+            $resolver->setDefault('asset_output_web_prefix', self::DEFAULT_ASSET_OUTPUT_WEB_PATH, 'string');
+            $resolver->setDefault('asset_output_path', self::DEFAULT_ASSET_OUTPUT_PATH, 'string');
+            $resolver->setDefault('asset_defaults_gravity', 'Center', 'string');
+            $resolver->setDefault('asset_defaults_quality', null, 'integer', false, true);
+            $this->configurationResolver = $resolver;
+        }
+        return $this->configurationResolver;
+    }
+
+    private function getFileResolver()
+    {
+        if (!$this->fileResolver) {
+            if (!$this->config) {
+                throw new \LogicException('Config must be resolved first.');
+            }
+
+            $resolver = new AttributesResolver();
+            $resolver->setDefault('resize', null, 'string', false, true);
+            $resolver->setDefault('crop', null, 'string', false, true);
+            $resolver->setDefault('gravity', $this->config['asset_defaults_gravity'], 'string');
+            $resolver->setDefault('quality', $this->config['asset_defaults_quality'], 'integer', false, true);
+            $this->fileResolver = $resolver;
+        }
+
+        return $this->fileResolver;
     }
 }

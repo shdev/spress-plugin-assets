@@ -45,11 +45,18 @@ Here the default values are displayed.
 ```yaml
 asset_output_path: 'build/assets'
 asset_output_web_prefix: '/assets'
+asset_defaults_gravity: 'Center'
+asset_defaults_quality: ~
 ```
 
 `asset_output_path` the path where the file is stored during building.
 
 `asset_output_web_prefix` is the path prefix for the link.
+
+`asset_defaults_gravity` is the default gravity for cropping a image if nothing is given in asset-filter options
+
+`asset_defaults_quality` is the default quality for images. 
+I would recommend 90. If this is `null` *imagemagick* is not necessary as dependency.  
 
 For example if you use a CDN you want the assets in an own build-folder and the URL prefix contains information about your CDN.     
 
